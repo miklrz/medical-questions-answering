@@ -101,5 +101,5 @@ poetry run python scripts/ab_test_prompts.py
 - **Промпты**: `base`, `few_shot`, `cot`, `full` — сравниваются по ROUGE-L, BLEU, semantic similarity.
 
 ## 🎬 Demo
-
-[Telegram Bot](link) | [Video Demo](link)
+(В процессе)
+[Telegram Bot]() | [Video Demo]()
