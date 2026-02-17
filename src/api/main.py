@@ -8,10 +8,12 @@ from src.api.graph import build_medical_qa_graph
 from src.api.schemas import MedicalAnswer, Query
 from src.api.feedback_store import record_feedback
 import os
+from dotenv import load_dotenv
 
-
+load_dotenv()
 dataset = MedicalDataset("ruslanmv/ai-medical-chatbot", split="train")
-similarity_model = SimilarityModel()
+SAVED_MODEL_PATH = os.getenv("SAVED_MODEL_PATH")
+similarity_model = SimilarityModel(SAVED_MODEL_PATH=SAVED_MODEL_PATH)
 retrieval = Retrieval()
 retrieval.build_index(dataset.get_qa_pairs())
 

@@ -1,4 +1,4 @@
-import wandb
+from clearml import Task
 import torch
 from datasets import load_dataset
 from src.api.dataset import RerankerDataset, tokenize_reranker
@@ -10,11 +10,11 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-import logger
+import logging
 import os
+from dotenv import load_dotenv
 
 BASE_MODEL = "bert-base-uncased"
-SAVED_MODEL_PATH = os.getenv("SAVED_MODEL_PATH", "./saved_model")
 
 
 def compute_metrics(eval_pred):
@@ -28,10 +28,14 @@ def compute_metrics(eval_pred):
 
 
 class ModelTrainer:
-    def __init__(self, ds):
+    def __init__(self, ds,SAVED_MODEL_PATH):
         self.ds = ds.get_ds()
-        wandb.init(project="medical_bot", name="bert_reranker_cross_encoder")
+        # self.task = Task.init(
+        #     project_name="medical_bot",
+        #     task_name="bert_reranker_cross_encoder",
+        # )
         self.reranker_ds = RerankerDataset()
+        self.SAVED_MODEL_PATH = SAVED_MODEL_PATH
 
     def train(self):
         split = self.reranker_ds.train_test_split(test_size=0.2, seed=42)
@@ -46,7 +50,9 @@ class ModelTrainer:
             [c for c in tokenized_ds["test"].column_names if c not in columns]
         )
 
-        logger.info(f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}")
+        logging.info(
+            f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}"
+        )
 
         model = AutoModelForSequenceClassification.from_pretrained(
             "bert-base-uncased", num_labels=2
@@ -54,7 +60,7 @@ class ModelTrainer:
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
         training_args = TrainingArguments(
-            output_dir=SAVED_MODEL_PATH,
+            output_dir=self.SAVED_MODEL_PATH,
             eval_strategy="steps",
             eval_steps=100,
             logging_steps=20,
@@ -64,7 +70,8 @@ class ModelTrainer:
             save_total_limit=2,
             load_best_model_at_end=True,
             metric_for_best_model="accuracy",
-            report_to="wandb",
+            # report_to="clearml",
+            report_to="none",
             fp16=True,
         )
 
@@ -81,8 +88,15 @@ class ModelTrainer:
         print("Training BERT cross-encoder reranker...")
         trainer.train()
 
-        trainer.save_model(SAVED_MODEL_PATH)
-        tokenizer.save_pretrained(SAVED_MODEL_PATH)
-        print(f"Model saved to {SAVED_MODEL_PATH}")
+        trainer.save_model(self.SAVED_MODEL_PATH)
+        tokenizer.save_pretrained(self.SAVED_MODEL_PATH)
+        print(f"Model saved to {self.SAVED_MODEL_PATH}")
 
-        wandb.finish()
+        # self.task.close()
+
+if __name__ == "__main__":
+    load_dotenv()
+    logging.basicConfig(level=logging.INFO)
+    ds = RerankerDataset()
+    trainer = ModelTrainer(ds, SAVED_MODEL_PATH=os.getenv("SAVED_MODEL_PATH"))
+    trainer.train()

@@ -12,7 +12,7 @@ services:
       - HOST=${LLM_HOST:-host.docker.internal}
       - SAVED_MODEL_PATH=/app/saved_model
     volumes:
-      - ./saved_model:/app/saved_model:ro
+      - ./data/saved_model:/app/saved_model:ro
     env_file:
       - .env
     restart: unless-stopped

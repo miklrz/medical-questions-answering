@@ -1,5 +1,7 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
+import os
+import logging
 
 
 def tokenize(ds):
@@ -25,7 +27,8 @@ class MedicalDataset:
     """
 
     def __init__(self, url="ruslanmv/ai-medical-chatbot", split="train"):
-        self.ds = load_dataset(path=url, split=split)
+        self.ds = load_dataset(path=url, split=split,cache_dir=os.getenv('SAVED_DATASET_QA_PATH'))
+        logging.info(f'ruslanmv/ai-medical-chatbot" loaded')
 
     def get_qa_pairs(self) -> list[str]:
         qa_pairs = [f"Q: {ex['Description']} A: {ex['Doctor']}" for ex in self.ds]
@@ -43,7 +46,8 @@ class RerankerDataset:
     """
 
     def __init__(self):
-        self.ds = load_dataset("curaihealth/medical_questions_pairs")
+        self.ds = load_dataset("curaihealth/medical_questions_pairs",cache_dir=os.getenv('SAVED_DATASET_PAIRS_PATH'))
+        logging.info(f'Dataset: "curaihealth/medical_questions_pairs" loaded')
 
     def get_ds(self):
         return self.ds
