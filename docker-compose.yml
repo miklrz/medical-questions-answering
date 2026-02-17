@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/api/Dockerfile
+    container_name: medical_api
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=${LLM_HOST:-host.docker.internal}
+      - SAVED_MODEL_PATH=/app/saved_model
+    volumes:
+      - ./saved_model:/app/saved_model:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  bot:
+    build:
+      context: .
+      dockerfile: src/bot/Dockerfile  
+    container_name: medical_bot
+    environment:
+      - API_URL=http://api:8000
+    env_file:
+      - .env
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

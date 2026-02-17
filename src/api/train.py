@@ -1,7 +1,7 @@
 import wandb
 import torch
 from datasets import load_dataset
-from src.api.dataset import train_test, tokenize
+from src.api.dataset import RerankerDataset, tokenize_reranker
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -10,6 +10,11 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import logger
+import os
+
+BASE_MODEL = "bert-base-uncased"
+SAVED_MODEL_PATH = os.getenv("SAVED_MODEL_PATH", "./saved_model")
 
 
 def compute_metrics(eval_pred):
@@ -25,20 +30,23 @@ def compute_metrics(eval_pred):
 class ModelTrainer:
     def __init__(self, ds):
         self.ds = ds.get_ds()
-        wandb.init(project="medical_bot", name="bert_similarity")
+        wandb.init(project="medical_bot", name="bert_reranker_cross_encoder")
+        self.reranker_ds = RerankerDataset()
 
     def train(self):
-        split = train_test(self.ds)
-        tokenized_datasets = tokenize(split)
+        split = self.reranker_ds.train_test_split(test_size=0.2, seed=42)
+        tokenized_ds, tokenizer = tokenize_reranker(split, model_name=BASE_MODEL)
         tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
         columns = ["input_ids", "attention_mask", "token_type_ids", "label"]
-        train_dataset = tokenized_datasets["train"].remove_columns(
-            [c for c in tokenized_datasets["train"].column_names if c not in columns]
+        train_dataset = tokenized_ds["train"].remove_columns(
+            [c for c in tokenized_ds["train"].column_names if c not in columns]
         )
-        test_dataset = tokenized_datasets["test"].remove_columns(
-            [c for c in tokenized_datasets["test"].column_names if c not in columns]
+        eval_dataset = tokenized_ds["test"].remove_columns(
+            [c for c in tokenized_ds["test"].column_names if c not in columns]
         )
+
+        logger.info(f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}")
 
         model = AutoModelForSequenceClassification.from_pretrained(
             "bert-base-uncased", num_labels=2
@@ -46,7 +54,7 @@ class ModelTrainer:
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
         training_args = TrainingArguments(
-            output_dir="./saved_model",
+            output_dir=SAVED_MODEL_PATH,
             eval_strategy="steps",
             eval_steps=100,
             logging_steps=20,
@@ -57,18 +65,24 @@ class ModelTrainer:
             load_best_model_at_end=True,
             metric_for_best_model="accuracy",
             report_to="wandb",
+            fp16=True,
         )
 
         trainer = Trainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
-            eval_dataset=test_dataset,
+            eval_dataset=eval_dataset,
             tokenizer=tokenizer,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
         )
 
+        print("Training BERT cross-encoder reranker...")
         trainer.train()
-        trainer.save_model("./saved_model")
-        tokenizer.save_pretrained("./saved_model")
+
+        trainer.save_model(SAVED_MODEL_PATH)
+        tokenizer.save_pretrained(SAVED_MODEL_PATH)
+        print(f"Model saved to {SAVED_MODEL_PATH}")
+
+        wandb.finish()

@@ -1,12 +1,15 @@
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
+import torch
 
 
 class Retrieval:
     def __init__(
-        self, embedding_model_name="paraphrase-MiniLM-L3-v2", device="cuda", corpus=None
+        self, embedding_model_name="paraphrase-MiniLM-L3-v2", device=None, corpus=None
     ):
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
         self.embedder = SentenceTransformer(embedding_model_name, device=device)
         self.corpus = corpus or []  # список строк вопросов и ответов
         self.index = None

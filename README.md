@@ -67,7 +67,7 @@ RAG-система для автоматических ответов на ме�
 │   ├── llm_generation.py # Structured output generation
 │   ├── retrieval.py     # FAISS + sentence-transformers
 │   ├── models.py        # BERT reranker (SimilarityModel)
-│   ├── dataset.py       # MedicalDataset, train_test, tokenize
+│   ├── dataset.py       # MedicalDataset, tokenize
 │   ├── train.py         # Обучение BERT reranker
 │   ├── evaluation.py    # ROUGE, BLEU, semantic similarity
 │   └── feedback_store.py

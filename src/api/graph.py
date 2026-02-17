@@ -30,13 +30,24 @@ class GraphState(TypedDict):
 
 def query_analysis_node(state: GraphState) -> dict:
     """Analyze query: extract intent, detect urgency."""
-    # Simple analysis: we could add NER/classification here
     query = state["user_question"].strip()
-    urgency_keywords = ["боль", "кровь", "температура", "срочно", "скорая", "сердце", "голова"]
+    urgency_keywords = [
+        "боль",
+        "кровь",
+        "температура",
+        "срочно",
+        "скорая",
+        "сердце",
+        "голова",
+        "передозировка",
+        "потеря сознания",
+        "не дышит",
+    ]
     has_urgency = any(kw in query.lower() for kw in urgency_keywords)
     return {
         "analyzed_query": query,
         "need_clarification": False,
+        "has_urgency": has_urgency,  # Fix: was computed but never returned
     }
 
 
@@ -80,16 +91,30 @@ def answer_generation_node(
 
 
 def quality_check_node(state: GraphState) -> dict:
-    """Check quality: low confidence → suggest clarification or doctor visit."""
+    """Check quality: low confidence or urgency → force doctor visit."""
     confidence = state.get("confidence", 0.0)
+    has_urgency = state.get("has_urgency", False)
     answer = state.get("validated_answer")
+
     need_clarification = confidence < 0.7 and answer is not None
-    if need_clarification and answer:
-        # Add warning about low confidence
-        answer.warnings = list(answer.warnings or []) + [
-            "Уверенность модели в ответе низкая. Рекомендуется уточнить вопрос или обратиться к специалисту."
-        ]
-        answer.requires_doctor_visit = answer.requires_doctor_visit or True
+
+    if answer:
+        if need_clarification:
+            answer.warnings = list(answer.warnings or []) + [
+                "Уверенность модели в ответе низкая. Рекомендуется уточнить вопрос или обратиться к специалисту."
+            ]
+            answer.requires_doctor_visit = True
+
+        if has_urgency:
+            answer.requires_doctor_visit = True
+            if (
+                "Обнаружены признаки срочного состояния. Обратитесь за медицинской помощью."
+                not in (answer.warnings or [])
+            ):
+                answer.warnings = list(answer.warnings or []) + [
+                    "Обнаружены признаки срочного состояния. Обратитесь за медицинской помощью немедленно."
+                ]
+
     return {"need_clarification": need_clarification, "validated_answer": answer}
 
 

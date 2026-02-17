@@ -1,36 +1,46 @@
-[project]
+[tool.poetry]
 name = "medical-questions-answering"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "hxastur",email = "arz.mikhail@gmail.com"}
-]
+authors = ["hxastur <arz.mikhail@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.12.9,<4.0"
-dependencies = [
-    "torch (>=2.7.1,<3.0.0)",
-    "datasets (>=3.6.0,<4.0.0)",
-    "transformers (>=4.52.4,<5.0.0)",
-    "wandb (>=0.20.1,<0.21.0)",
-    "aiogram (>=3.20.0.post0,<4.0.0)",
-    "fastapi (>=0.115.12,<0.116.0)",
-    "sentence-transformers (>=4.1.0,<5.0.0)",
-    "faiss-cpu (>=1.11.0,<2.0.0)",
-    "accelerate (>=0.26.0)",
-    "python-dotenv (>=1.1.0,<2.0.0)",
-    "uvicorn (>=0.34.3,<0.35.0)",
-    "ipykernel (>=6.29.5,<7.0.0)",
-    "langchain (>=0.3.25,<0.4.0)",
-    "langchain-community (>=0.3.24,<0.4.0)",
-    "langchain-openai (>=0.3.21,<0.4.0)",
-    "langgraph (>=0.2.0)",
-    "rouge-score (>=0.1.2)",
-    "peft (>=0.13.0)",
-    "bitsandbytes (>=0.44.0)",
-    "trl (>=0.12.0)",
-    "nltk (>=3.9)"
-]
+packages = [{ include = "src" }]
 
+[tool.poetry.dependencies]
+# Единственная общая зависимость — нужна и API, и боту
+python = ">=3.12.9,<4.0"
+python-dotenv = ">=1.1.0,<2.0.0"
+
+# ── ML API ───────────────────────────────────────────────────────────────────
+[tool.poetry.group.api.dependencies]
+torch = ">=2.7.1,<3.0.0"
+datasets = ">=3.6.0,<4.0.0"
+transformers = ">=4.52.4,<5.0.0"
+wandb = ">=0.20.1,<0.21.0"
+fastapi = ">=0.115.12,<0.116.0"
+uvicorn = { version = ">=0.34.3,<0.35.0", extras = ["standard"] }
+sentence-transformers = ">=4.1.0,<5.0.0"
+faiss-cpu = ">=1.11.0,<2.0.0"
+accelerate = ">=0.26.0"
+langchain = ">=0.3.25,<0.4.0"
+langchain-community = ">=0.3.24,<0.4.0"
+langchain-openai = ">=0.3.21,<0.4.0"
+langgraph = ">=0.2.0"
+rouge-score = ">=0.1.2"
+peft = ">=0.13.0"
+bitsandbytes = ">=0.44.0"
+trl = ">=0.12.0"
+nltk = ">=3.9"
+
+# ── Telegram Bot ─────────────────────────────────────────────────────────────
+[tool.poetry.group.bot.dependencies]
+aiogram = ">=3.20.0.post0,<4.0.0"
+httpx = ">=0.27.0"
+
+# ── Dev (не попадает в Docker-образы) ────────────────────────────────────────
+[tool.poetry.group.dev.dependencies]
+black = ">=26.1.0,<27.0.0"
+ipykernel = ">=6.29.5,<7.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

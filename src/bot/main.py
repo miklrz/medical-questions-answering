@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 import os
 import asyncio
+import httpx
 
 load_dotenv()
 
@@ -45,49 +46,63 @@ async def handle_start(message: types.Message) -> None:
 async def handle_message(message: types.Message):
     user_q = message.text
     try:
-        resp = requests.post(f"{API_URL}/answer", json={"question": user_q}, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(f"{API_URL}/answer", json={"question": user_q})
+            resp.raise_for_status()
+            data = resp.json()
 
         answer = data.get("answer", "")
         confidence = data.get("confidence", 0)
         sources = data.get("sources", [])
         warnings = data.get("warnings", [])
         request_id = data.get("request_id", "")
+        requires_doctor = data.get("requires_doctor_visit", False)
 
-        parts = [f"**Ответ:**\n{answer}"]
+        parts = [f"*Ответ:*\n{answer}"]
+
+        if requires_doctor:
+            parts.append("\n🏥 *Рекомендуется визит к врачу*")
+
         if warnings:
-            parts.append(f"\n⚠️ {chr(10).join(warnings)}")
+            parts.append("\n⚠️ " + "\n⚠️ ".join(warnings))
+
         parts.append(f"\nУверенность: {confidence:.0%}")
+
         if sources:
-            parts.append("\n**Источники:**\n" + "\n".join(f"• {s[:200]}..." if len(s) > 200 else f"• {s}" for s in sources[:3]))
+            short_sources = [
+                f"• {s[:200]}..." if len(s) > 200 else f"• {s}" for s in sources[:3]
+            ]
+            parts.append("\n*Источники:*\n" + "\n".join(short_sources))
 
         reply = "\n".join(parts)
         keyboard = build_feedback_keyboard(request_id) if request_id else None
         await message.reply(reply, reply_markup=keyboard, parse_mode="Markdown")
+
     except Exception as e:
-        logging.error(e)
-        await message.reply("Извините, произошла ошибка при получении ответа.")
+        logging.error(f"Error handling message: {e}")
+        await message.reply(
+            "Извините, произошла ошибка при получении ответа. Попробуйте позже."
+        )
 
 
 @dp.callback_query(F.data.startswith("fb:"))
 async def handle_feedback(callback: types.CallbackQuery):
     """Handle useful/not useful feedback."""
     try:
-        _, request_id, useful_str = callback.data.split(":")
-        useful = useful_str == "1"
+        parts = callback.data.split(":")
+        request_id = parts[1]
+        useful = parts[2] == "1"
 
-        requests.post(
-            f"{API_URL}/feedback",
-            params={"request_id": request_id, "useful": useful},
-            timeout=5,
-        )
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{API_URL}/feedback",
+                params={"request_id": request_id, "useful": useful},
+            )
 
         await callback.answer("Спасибо за оценку!")
-        # Remove keyboard after feedback
         await callback.message.edit_reply_markup(reply_markup=None)
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Feedback error: {e}")
         await callback.answer("Ошибка при отправке оценки.")
 
 
