@@ -10,7 +10,6 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-import logging
 import os
 from dotenv import load_dotenv
 
@@ -28,7 +27,7 @@ def compute_metrics(eval_pred):
 
 
 class ModelTrainer:
-    def __init__(self, ds,SAVED_MODEL_PATH):
+    def __init__(self, ds, SAVED_MODEL_PATH):
         self.ds = ds.get_ds()
         # self.task = Task.init(
         #     project_name="medical_bot",
@@ -50,9 +49,7 @@ class ModelTrainer:
             [c for c in tokenized_ds["test"].column_names if c not in columns]
         )
 
-        logging.info(
-            f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}"
-        )
+        print(f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}")
 
         model = AutoModelForSequenceClassification.from_pretrained(
             "bert-base-uncased", num_labels=2
@@ -94,9 +91,9 @@ class ModelTrainer:
 
         # self.task.close()
 
+
 if __name__ == "__main__":
     load_dotenv()
-    logging.basicConfig(level=logging.INFO)
     ds = RerankerDataset()
     trainer = ModelTrainer(ds, SAVED_MODEL_PATH=os.getenv("SAVED_MODEL_PATH"))
     trainer.train()

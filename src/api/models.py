@@ -1,13 +1,19 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import os
-import logging
+
 
 class SimilarityModel:
-    def __init__(self, model_name="bert-base-uncased", train=False, device=None,SAVED_MODEL_PATH=None):
+    def __init__(
+        self,
+        model_name="bert-base-uncased",
+        train=False,
+        device=None,
+        SAVED_MODEL_PATH=None,
+    ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._ready = False
-        self.SAVED_MODEL_PATH=SAVED_MODEL_PATH
+        self.SAVED_MODEL_PATH = SAVED_MODEL_PATH
 
         if train:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -21,19 +27,18 @@ class SimilarityModel:
                     self.model = AutoModelForSequenceClassification.from_pretrained(
                         self.SAVED_MODEL_PATH
                     )
-                    self.tokenizer = AutoTokenizer.from_pretrained(self.SAVED_MODEL_PATH)
-                    self._ready = True
-                    logging.info(f"Loaded reranker from {self.SAVED_MODEL_PATH}")
-                except Exception as e:
-                    logging.warning(
-                        f"Failed to load saved_model: {e}. Reranker disabled."
+                    self.tokenizer = AutoTokenizer.from_pretrained(
+                        self.SAVED_MODEL_PATH
                     )
+                    self._ready = True
+                    print(f"Loaded reranker from {self.SAVED_MODEL_PATH}")
+                except Exception as e:
+                    print(f"Failed to load saved_model: {e}. Reranker disabled.")
                     self.model = None
                     self.tokenizer = None
             else:
-                logging.warning(
-                    f"saved_model not found at '{self.SAVED_MODEL_PATH}'. "
-                    "Reranking will use fallback scores. Run training first."
+                print(
+                    f"saved_model not found at '{self.SAVED_MODEL_PATH}'. \nReranking will use fallback scores. Run training first."
                 )
                 self.model = None
                 self.tokenizer = None

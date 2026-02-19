@@ -43,7 +43,9 @@ def main():
     # Load dataset and build index
     dataset = MedicalDataset("ruslanmv/ai-medical-chatbot", split="train")
     retrieval = Retrieval()
-    retrieval.build_index(dataset.get_qa_pairs())
+    retrieval.build_index(
+        dataset.get_qa_pairs(), cache_dir=os.getenv("EMBEDDINGS_CACHE_DIR")
+    )
     similarity_model = SimilarityModel()
 
     test_set = load_test_set(TEST_PATH)

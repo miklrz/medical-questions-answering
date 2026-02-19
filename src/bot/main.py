@@ -107,7 +107,7 @@ async def handle_feedback(callback: types.CallbackQuery):
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=print)
     await dp.start_polling(bot)
 
 

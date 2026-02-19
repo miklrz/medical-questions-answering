@@ -11,8 +11,10 @@ services:
     environment:
       - HOST=${LLM_HOST:-host.docker.internal}
       - SAVED_MODEL_PATH=/app/saved_model
+      - EMBEDDINGS_CACHE_DIR=/app/cached_embeddings
     volumes:
       - ./data/saved_model:/app/saved_model:ro
+      - ./data/cached_embeddings:/app/cached_embeddings
     env_file:
       - .env
     restart: unless-stopped
@@ -21,7 +23,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 600s
 
   bot:
     build:

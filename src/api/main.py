@@ -15,7 +15,9 @@ dataset = MedicalDataset("ruslanmv/ai-medical-chatbot", split="train")
 SAVED_MODEL_PATH = os.getenv("SAVED_MODEL_PATH")
 similarity_model = SimilarityModel(SAVED_MODEL_PATH=SAVED_MODEL_PATH)
 retrieval = Retrieval()
-retrieval.build_index(dataset.get_qa_pairs())
+retrieval.build_index(
+    dataset.get_qa_pairs(), cache_dir=os.getenv("EMBEDDINGS_CACHE_DIR")
+)
 
 # LangGraph pipeline with full prompt (base + few-shot + CoT)
 graph = build_medical_qa_graph(retrieval, similarity_model, system_variant="full")
@@ -59,3 +61,9 @@ async def feedback_stats():
     from src.api.feedback_store import get_aggregate_stats
 
     return get_aggregate_stats()
+
+
+# healthcheck
+@app.get("/health")
+def health():
+    return {"status": "ok"}
