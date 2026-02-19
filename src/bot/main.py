@@ -45,8 +45,9 @@ async def handle_start(message: types.Message) -> None:
 @dp.message(F.text)
 async def handle_message(message: types.Message):
     user_q = message.text
+    thinking = await message.reply("⏳ Обрабатываю запрос...")
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(f"{API_URL}/answer", json={"question": user_q})
             resp.raise_for_status()
             data = resp.json()
@@ -76,11 +77,12 @@ async def handle_message(message: types.Message):
 
         reply = "\n".join(parts)
         keyboard = build_feedback_keyboard(request_id) if request_id else None
+        await thinking.delete()
         await message.reply(reply, reply_markup=keyboard, parse_mode="Markdown")
 
     except Exception as e:
         logging.error(f"Error handling message: {e}")
-        await message.reply(
+        await thinking.edit_text(
             "Извините, произошла ошибка при получении ответа. Попробуйте позже."
         )
 
@@ -107,7 +109,7 @@ async def handle_feedback(callback: types.CallbackQuery):
 
 
 async def main():
-    logging.basicConfig(level=print)
+    logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
 
 
