@@ -10,9 +10,10 @@ from src.api.schemas import MedicalAnswer, Query
 from src.api.feedback_store import record_feedback
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
-
+logging.basicConfig(level=logging.INFO)
 state: dict = {}
 
 
@@ -38,6 +39,7 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/answer")
 async def answer(query: Query):
     """Answer medical question via LangGraph pipeline with structured output."""
+    logging.info(f"Got request: {query}")
     user_q = query.question
     try:
         result = state["graph"].invoke({"user_question": user_q})

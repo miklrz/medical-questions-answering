@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import torch
+import logging
 
 
 class Retrieval:
@@ -23,7 +24,7 @@ class Retrieval:
         dim = self.embeddings.shape[1]
         self.index = faiss.IndexFlatL2(dim)
         self.index.add(self.embeddings)
-        print("Index built")
+        logging.info("Index built")
 
     def query(self, query_text: str, top_k: int = 5):
         q_emb = self.embedder.encode([query_text], convert_to_numpy=True)

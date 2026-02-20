@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import os
+import logging
 
 
 class SimilarityModel:
@@ -31,13 +32,13 @@ class SimilarityModel:
                         self.SAVED_MODEL_PATH
                     )
                     self._ready = True
-                    print(f"Loaded reranker from {self.SAVED_MODEL_PATH}")
+                    logging.info(f"Loaded reranker from {self.SAVED_MODEL_PATH}")
                 except Exception as e:
-                    print(f"Failed to load saved_model: {e}. Reranker disabled.")
+                    logging.info(f"Failed to load saved_model: {e}. Reranker disabled.")
                     self.model = None
                     self.tokenizer = None
             else:
-                print(
+                logging.info(
                     f"saved_model not found at '{self.SAVED_MODEL_PATH}'. \nReranking will use fallback scores. Run training first."
                 )
                 self.model = None

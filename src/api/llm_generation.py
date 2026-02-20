@@ -5,7 +5,7 @@ LLM generation with structured output: try native, fallback to JSON parsing.
 import json
 import re
 
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 import os
 
@@ -15,9 +15,11 @@ from src.api.schemas import MedicalAnswer
 def get_llm():
     """Get LLM instance."""
     return ChatOpenAI(
+        model="mistral-7b-instruct-v0.1",
         temperature=0.0,
-        base_url=f"http://{os.getenv('HOST', 'localhost')}:1234/v1",
+        base_url=f"http://{os.getenv('HOST')}:1234/v1",
         api_key="not-needed",
+        timeout=30.0,
     )
 
 

@@ -12,6 +12,7 @@ from src.api.prompts import build_generation_prompt
 from src.api.retrieval import Retrieval
 from src.api.models import SimilarityModel
 from src.api.llm_generation import generate_structured
+import logging
 
 
 class GraphState(TypedDict):
@@ -30,6 +31,7 @@ class GraphState(TypedDict):
 
 def query_analysis_node(state: GraphState) -> dict:
     """Analyze query: extract intent, detect urgency."""
+    logging.info("Start query analysis")
     query = state["user_question"].strip()
     urgency_keywords = [
         "боль",
@@ -52,6 +54,7 @@ def query_analysis_node(state: GraphState) -> dict:
 
 
 def retrieval_node(state: GraphState, retrieval: Retrieval) -> dict:
+    logging.info("Retrieving top-k candidates from FAISS")
     """Retrieve top-k candidates from FAISS."""
     query = state["analyzed_query"]
     candidates = retrieval.query(query, top_k=5)
@@ -60,6 +63,7 @@ def retrieval_node(state: GraphState, retrieval: Retrieval) -> dict:
 
 def reranking_node(state: GraphState, similarity_model: SimilarityModel) -> dict:
     """Rerank with BERT, keep top-3."""
+    logging.info("Reranking")
     query = state["analyzed_query"]
     docs = state["retrieved_docs"]
     scored = []
@@ -77,6 +81,7 @@ def answer_generation_node(
     similarity_model: SimilarityModel,
     system_variant: str = "full",
 ) -> dict:
+    logging.info("Generating answer")
     """Generate answer via LLM with structured output."""
     contexts = state["contexts"]
     question = state["user_question"]
@@ -84,6 +89,7 @@ def answer_generation_node(
     sources = [c["text"] for c in state["reranked_docs"]]
 
     result = generate_structured(prompt, sources)
+    logging.info("Answer generated")
     return {
         "validated_answer": result,
         "confidence": result.confidence,

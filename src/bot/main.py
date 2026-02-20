@@ -44,11 +44,14 @@ async def handle_start(message: types.Message) -> None:
 
 @dp.message(F.text)
 async def handle_message(message: types.Message):
+    logging.info("Got message")
     user_q = message.text
     thinking = await message.reply("⏳ Обрабатываю запрос...")
     try:
         async with httpx.AsyncClient(timeout=180.0) as client:
+            logging.info("Sending request to api")
             resp = await client.post(f"{API_URL}/answer", json={"question": user_q})
+            logging.info("Recieved responce")
             resp.raise_for_status()
             data = resp.json()
 

@@ -13,7 +13,7 @@ train:
 	PTHONPATH=. python -m src.api.train
 
 run-local:
-	PYHTONPATH=. uvicorn src.api.main:app --reload --port 8000
+	PYHTONPATH=. poetry run uvicorn src.api.main:app --reload --port 8000
 
 docker-up:
 	docker compose up --build
