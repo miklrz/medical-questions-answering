@@ -19,21 +19,6 @@ RAG-система для автоматических ответов на ме�
 - [curaihealth/medical_questions_pairs](https://huggingface.co/datasets/curaihealth/medical_questions_pairs)
 - [ruslanmv/ai-medical-chatbot](https://huggingface.co/datasets/ruslanmv/ai-medical-chatbot)
 
-
-## ✨ Ключевые улучшения
-
-| Фича | Описание |
-|------|----------|
-| **Structured Output** | Схема ответа через Pydantic: `answer`, `confidence`, `sources`, `requires_doctor_visit`, `warnings` |
-| **LangGraph** | Multi-step reasoning: анализ запроса → retrieval → reranking → generation → validation |
-| **Prompt Engineering** | System guidelines + few-shot examples + chain-of-thought |
-| **A/B тестирование** | Тестовый набор, ROUGE/BLEU, semantic similarity, human feedback в боте |
-
-## 📊 Результаты (примеры для резюме)
-
-- **A/B тестирование промптов**: базовый vs few-shot vs CoT vs full. Best ROUGE-L ~0.68 (full).
-- **Latency**: <2 сек на CPU (с оптимизацией inference).
-
 ## 🛠️ Технологии
 
 - **Fine-tuning**: BERT-base
@@ -81,19 +66,19 @@ RAG-система для автоматических ответов на ме�
 
 ```bash
 # Установка
-poetry install
+uv sync --group api --group bot --group dev
 
 # Обучение BERT reranker (если ещё не обучен)
 # См. src/api/train.py — требует датасет с question_1, question_2 (curaihealth/medical_questions_pairs)
 
 # Запуск API (требуется LM Studio на localhost:1234)
-HOST=localhost uvicorn src.api.main:app --reload
+HOST=localhost uv run uvicorn src.api.main:app --reload
 
 # Запуск бота
-TELEGRAM_TOKEN=xxx python -m src.bot.main
+TELEGRAM_TOKEN=xxx uv run python -m src.bot.main
 
 # A/B тестирование промптов
-poetry run python scripts/ab_test_prompts.py
+uv run python scripts/ab_test_prompts.py
 ```
 
 ## 📈 Эксперименты

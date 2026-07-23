@@ -3,3 +3,4 @@ wandb
 saved_model
 __pycache__
 data
+.venv
