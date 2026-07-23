@@ -52,6 +52,7 @@ def main():
         embedding_batch_size=config.retrieval.embedding_batch_size,
         show_progress_bar=config.retrieval.show_progress_bar,
         embeddings_cache_dir=config.retrieval.embeddings_cache_dir,
+        use_embeddings_cache=config.retrieval.use_embeddings_cache,
     )
     retrieval.build_index(dataset.get_qa_pairs())
     similarity_model = SimilarityModel(

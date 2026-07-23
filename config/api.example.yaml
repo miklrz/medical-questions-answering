@@ -19,6 +19,7 @@ retrieval:
   embedding_batch_size: 128
   show_progress_bar: true
   embeddings_cache_dir: data/embeddings
+  use_embeddings_cache: true
 
 reranker:
   model_name: bert-base-uncased

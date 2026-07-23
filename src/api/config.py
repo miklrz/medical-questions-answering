@@ -33,6 +33,7 @@ class RetrievalConfig(BaseModel):
     embedding_batch_size: int = 128
     show_progress_bar: bool = True
     embeddings_cache_dir: str | None = None
+    use_embeddings_cache: bool = True
 
 
 class RerankerConfig(BaseModel):
@@ -158,6 +159,7 @@ def load_api_config(path: str | Path | None = None) -> APIConfig:
     _set_if_env(data, "retrieval", "embedding_batch_size", "EMBEDDING_BATCH_SIZE", int)
     _set_if_env(data, "retrieval", "show_progress_bar", "EMBEDDING_SHOW_PROGRESS", _env_bool)
     _set_if_env(data, "retrieval", "embeddings_cache_dir", "EMBEDDINGS_CACHE_DIR")
+    _set_if_env(data, "retrieval", "use_embeddings_cache", "USE_EMBEDDINGS_CACHE", _env_bool)
     _set_if_env(data, "reranker", "top_n", "RERANKER_TOP_N", int)
     _set_if_env(data, "graph", "system_variant", "SYSTEM_VARIANT")
     _set_if_env(data, "graph", "low_confidence_threshold", "LOW_CONFIDENCE_THRESHOLD", float)

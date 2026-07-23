@@ -84,6 +84,13 @@ uv run python -m src.bot.main
 uv run python scripts/ab_test_prompts.py
 ```
 
+### Пример curl 
+```
+curl -X POST http://localhost:8000/answer \
+    -H "Content-Type: application/json" \
+    -d '{"question":"Что делать при кашле без температуры?"}'
+```
+
 ## Датасеты
 
 Проект использует два разных датасета с Hugging Face. Оба скачиваются автоматически через `datasets.load_dataset` при первом запуске, если их еще нет в локальном кеше.
@@ -121,10 +128,33 @@ uv run python scripts/ab_test_prompts.py
 
 API и бот используют отдельные YAML-конфиги:
 
-- `config/api.yaml` — LLM endpoint/model/timeout, датасеты, retrieval/reranker, параметры графа, TrainingArguments для обучения и evaluation.
+- `config/api.yaml` — LLM endpoint/model/timeout, датасеты, retrieval/reranker, кеш FAISS-индекса, параметры графа, TrainingArguments для обучения и evaluation.
 - `config/bot.yaml` — URL API, таймауты HTTP-клиента и Telegram parse mode.
 
 Примеры лежат в `config/api.example.yaml` и `config/bot.example.yaml`. Локальные `config/api.yaml` и `config/bot.yaml` добавлены в `.gitignore`. Значения из `.env` и переменных окружения перекрывают YAML для совместимости с Docker и секретами: `TELEGRAM_TOKEN`, `API_URL`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `SAVED_MODEL_PATH`, `SAVED_DATASET_QA_PATH`, `SAVED_DATASET_PAIRS_PATH`.
+
+### vllm setup
+1. ```uv tool install vllm```
+2. 
+```
+  vllm serve HuggingFaceTB/SmolLM2-1.7B-Instruct \
+    --host 127.0.0.1 \
+    --port 8001 \
+    --dtype auto \
+    --max-model-len 2048 \
+    --gpu-memory-utilization 0.65 \
+    --max-num-seqs 1 \
+    --api-key local-token
+```
+3. В yaml config:
+```
+  llm:
+    base_url: http://127.0.0.1:8001/v1
+    model: HuggingFaceTB/SmolLM2-1.7B-Instruct
+    api_key: local-token
+    temperature: 0.0
+    timeout_seconds: 60.0
+```
 
 ## Эксперименты
 
