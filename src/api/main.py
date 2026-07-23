@@ -2,31 +2,42 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from src.api.config import get_api_config
 from src.api.models import SimilarityModel
 from src.api.retrieval import Retrieval
 from src.api.dataset import MedicalDataset
 from src.api.graph import build_medical_qa_graph
 from src.api.schemas import MedicalAnswer, Query
 from src.api.feedback_store import record_feedback
-import os
-from dotenv import load_dotenv
 import logging
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO)
 state: dict = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    SAVED_MODEL_PATH = os.getenv("SAVED_MODEL_PATH")
-    EMBEDDINGS_CACHE_DIR = os.getenv("EMBEDDINGS_CACHE_DIR")
+    config = get_api_config()
 
-    dataset = MedicalDataset("ruslanmv/ai-medical-chatbot", split="train")
-    similarity_model = SimilarityModel(SAVED_MODEL_PATH=SAVED_MODEL_PATH)
-    retrieval = Retrieval()
+    dataset = MedicalDataset(
+        config.dataset.qa_name,
+        split=config.dataset.qa_split,
+        cache_dir=config.dataset.qa_cache_dir,
+    )
+    similarity_model = SimilarityModel(
+        model_name=config.reranker.model_name,
+        device=config.reranker.device,
+        SAVED_MODEL_PATH=config.reranker.saved_model_path,
+    )
+    retrieval = Retrieval(
+        embedding_model_name=config.retrieval.embedding_model_name,
+        device=config.retrieval.device,
+        embedding_batch_size=config.retrieval.embedding_batch_size,
+        show_progress_bar=config.retrieval.show_progress_bar,
+        embeddings_cache_dir=config.retrieval.embeddings_cache_dir,
+    )
     retrieval.build_index(dataset.get_qa_pairs())
-    graph = build_medical_qa_graph(retrieval, similarity_model, system_variant="full")
+    graph = build_medical_qa_graph(retrieval, similarity_model, config=config)
 
     state["graph"] = graph
     yield

@@ -1,0 +1,55 @@
+llm:
+  base_url: http://localhost:1234/v1
+  model: mistral-7b-instruct-v0.1
+  api_key: not-needed
+  temperature: 0.0
+  timeout_seconds: 30.0
+
+dataset:
+  qa_name: ruslanmv/ai-medical-chatbot
+  qa_split: train
+  qa_cache_dir: data/ds_qa
+  pairs_name: curaihealth/medical_questions_pairs
+  pairs_cache_dir: data/ds_pairs
+
+retrieval:
+  embedding_model_name: paraphrase-MiniLM-L3-v2
+  device: null
+  top_k: 5
+  embedding_batch_size: 128
+  show_progress_bar: true
+  embeddings_cache_dir: data/embeddings
+
+reranker:
+  model_name: bert-base-uncased
+  saved_model_path: data/saved_model
+  device: null
+  top_n: 3
+
+graph:
+  system_variant: full
+  low_confidence_threshold: 0.7
+  urgency_keywords:
+    - боль
+    - кровь
+    - температура
+    - срочно
+    - скорая
+    - сердце
+    - голова
+    - передозировка
+    - потеря сознания
+    - не дышит
+
+training:
+  output_dir: data/saved_model
+  base_model_name: bert-base-uncased
+
+evaluation:
+  semantic_model_name: paraphrase-MiniLM-L3-v2
+  test_set_path: data/test_questions.json
+  prompt_variants:
+    - base
+    - few_shot
+    - cot
+    - full

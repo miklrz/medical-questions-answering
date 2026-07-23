@@ -35,6 +35,7 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Копируем код
 COPY src/ ./src/
+COPY config/ ./config/
 
 ENV PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"

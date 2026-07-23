@@ -1,6 +1,4 @@
-from clearml import Task
 import torch
-from datasets import load_dataset
 from src.api.dataset import RerankerDataset, tokenize_reranker
 from transformers import (
     AutoTokenizer,
@@ -10,10 +8,9 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-import os
-from dotenv import load_dotenv
+from src.api.config import get_api_config
 
-BASE_MODEL = "bert-base-uncased"
+BASE_MODEL = get_api_config().training.base_model_name
 
 
 def compute_metrics(eval_pred):
@@ -33,13 +30,13 @@ class ModelTrainer:
         #     project_name="medical_bot",
         #     task_name="bert_reranker_cross_encoder",
         # )
-        self.reranker_ds = RerankerDataset()
+        self.reranker_ds = ds
         self.SAVED_MODEL_PATH = SAVED_MODEL_PATH
 
     def train(self):
         split = self.reranker_ds.train_test_split(test_size=0.2, seed=42)
         tokenized_ds, tokenizer = tokenize_reranker(split, model_name=BASE_MODEL)
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 
         columns = ["input_ids", "attention_mask", "token_type_ids", "label"]
         train_dataset = tokenized_ds["train"].remove_columns(
@@ -52,7 +49,7 @@ class ModelTrainer:
         print(f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}")
 
         model = AutoModelForSequenceClassification.from_pretrained(
-            "bert-base-uncased", num_labels=2
+            BASE_MODEL, num_labels=2
         )
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
@@ -93,7 +90,10 @@ class ModelTrainer:
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    ds = RerankerDataset()
-    trainer = ModelTrainer(ds, SAVED_MODEL_PATH=os.getenv("SAVED_MODEL_PATH"))
+    config = get_api_config()
+    ds = RerankerDataset(
+        name=config.dataset.pairs_name,
+        cache_dir=config.dataset.pairs_cache_dir,
+    )
+    trainer = ModelTrainer(ds, SAVED_MODEL_PATH=config.training.output_dir)
     trainer.train()

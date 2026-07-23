@@ -1,12 +1,12 @@
-# Medical Questions Answering 🏥
+# Medical Questions Answering
 
 RAG-система для автоматических ответов на медицинские вопросы с использованием fine-tuned BERT, векторного поиска и LLM. Реализован full-stack pipeline: LangGraph multi-step reasoning, structured output (Pydantic), prompt engineering, A/B тестирование промптов.
 
-## 🎯 Проблема
+## Проблема
 
 Поиск ответов на медицинские вопросы в большой базе знаний занимает много времени. Простой семантический поиск часто возвращает нерелевантные результаты.
 
-## 💡 Решение
+## Решение
 
 1. **Retrieval** — FAISS находит топ-5 кандидатов через vector search (sentence-transformers)
 2. **Reranking** — Fine-tuned BERT переранжирует по реальной релевантности
@@ -15,11 +15,12 @@ RAG-система для автоматических ответов на ме�
 5. **Quality Check** — при низкой уверенности добавляются предупреждения и рекомендация визита к врачу
 
 
-**Datasets**
+## Datasets
+
 - [curaihealth/medical_questions_pairs](https://huggingface.co/datasets/curaihealth/medical_questions_pairs)
 - [ruslanmv/ai-medical-chatbot](https://huggingface.co/datasets/ruslanmv/ai-medical-chatbot)
 
-## 🛠️ Технологии
+## Технологии
 
 - **Fine-tuning**: BERT-base
 - **Retrieval**: FAISS, sentence-transformers (paraphrase-MiniLM-L3-v2)
@@ -31,7 +32,7 @@ RAG-система для автоматических ответов на ме�
 - **API**: FastAPI
 - **Deployment**: Docker, Telegram Bot (Aiogram)
 
-## 🚀 Как работает
+## Как работает
 
 1. Пользователь задает вопрос через Telegram
 2. **Query Analysis** — анализ запроса, детекция срочности
@@ -41,7 +42,7 @@ RAG-система для автоматических ответов на ме�
 6. **Quality Check** — при confidence < 0.7 добавляются предупреждения
 7. Ответ возвращается с кнопками «Полезно» / «Не полезно» (human feedback)
 
-## 📁 Структура
+## Project structure
 
 ```
 ├── src/api/
@@ -62,29 +63,46 @@ RAG-система для автоматических ответов на ме�
     └── ab_test_prompts.py   # A/B тестирование промптов
 ```
 
-## 🏃 Запуск
+## Запуск
 
 ```bash
 # Установка
 uv sync --group api --group bot --group dev
 
+# Конфиги приложения
+cp config/api.example.yaml config/api.yaml
+cp config/bot.example.yaml config/bot.yaml
+
+# Секреты лучше хранить в .env или окружении
+TELEGRAM_TOKEN=xxx
+
 # Обучение BERT reranker (если ещё не обучен)
 # См. src/api/train.py — требует датасет с question_1, question_2 (curaihealth/medical_questions_pairs)
+uv run python -m src.api.train
 
-# Запуск API (требуется LM Studio на localhost:1234)
-HOST=localhost uv run uvicorn src.api.main:app --reload
+# Запуск API
+uv run uvicorn src.api.main:app --reload
 
 # Запуск бота
-TELEGRAM_TOKEN=xxx uv run python -m src.bot.main
+uv run python -m src.bot.main
 
 # A/B тестирование промптов
 uv run python scripts/ab_test_prompts.py
 ```
 
-## 📈 Эксперименты
+## Конфигурация
+
+API и бот используют отдельные YAML-конфиги:
+
+- `config/api.yaml` — LLM endpoint/model/timeout, датасеты, retrieval/reranker, параметры графа, обучение и evaluation.
+- `config/bot.yaml` — URL API, таймауты HTTP-клиента и Telegram parse mode.
+
+Примеры лежат в `config/api.example.yaml` и `config/bot.example.yaml`. Локальные `config/api.yaml` и `config/bot.yaml` добавлены в `.gitignore`. Значения из `.env` и переменных окружения перекрывают YAML для совместимости с Docker и секретами: `TELEGRAM_TOKEN`, `API_URL`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `SAVED_MODEL_PATH`, `SAVED_DATASET_QA_PATH`, `SAVED_DATASET_PAIRS_PATH`.
+
+## Эксперименты
 
 - **Промпты**: `base`, `few_shot`, `cot`, `full` — сравниваются по ROUGE-L, BLEU, semantic similarity.
 
-## 🎬 Demo
+## Demo
 (В процессе)
 [Telegram Bot]() | [Video Demo]()

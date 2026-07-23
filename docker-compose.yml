@@ -7,9 +7,11 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - API_CONFIG_PATH=/app/config/api.yaml
       - SAVED_MODEL_PATH=/app/saved_model
       - SAVED_DATASET_QA_PATH=/app/ds_qa
     volumes:
+      - ./config:/app/config:ro
       - ./data/saved_model:/app/saved_model:ro
       - ./data/ds_qa:/app/ds_qa
     deploy:
@@ -35,7 +37,10 @@ services:
       dockerfile: src/bot/Dockerfile  
     container_name: medical_bot
     environment:
+      - BOT_CONFIG_PATH=/app/config/bot.yaml
       - API_URL=http://api:8000
+    volumes:
+      - ./config:/app/config:ro
     env_file:
       - .env
     depends_on:

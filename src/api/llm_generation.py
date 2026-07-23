@@ -7,32 +7,31 @@ import re
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-import os
 
+from src.api.config import LLMConfig, get_api_config
 from src.api.schemas import MedicalAnswer
 
 
-def get_llm():
+def get_llm(config: LLMConfig | None = None):
     """Get LLM instance."""
+    llm_config = config or get_api_config().llm
     return ChatOpenAI(
-        model="mistral-7b-instruct-v0.1",
-        temperature=0.0,
-        base_url=f"http://{os.getenv('HOST')}:1234/v1",
-        api_key="not-needed",
-        timeout=30.0,
+        model=llm_config.model,
+        temperature=llm_config.temperature,
+        base_url=llm_config.base_url,
+        api_key=llm_config.api_key,
+        timeout=llm_config.timeout_seconds,
     )
 
 
 def extract_json(text: str) -> dict | None:
     """Extract JSON object from raw LLM output."""
-    # Try direct parse
     text = text.strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
 
-    # Try ```json ... ```
     match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if match:
         try:
@@ -40,7 +39,6 @@ def extract_json(text: str) -> dict | None:
         except json.JSONDecodeError:
             pass
 
-    # Greedy: find first { and last }
     start = text.find("{")
     if start >= 0:
         depth = 0
@@ -75,14 +73,17 @@ def parse_to_medical_answer(raw: dict, sources: list[str]) -> MedicalAnswer:
     )
 
 
-def generate_structured(prompt: str, sources: list[str]) -> MedicalAnswer:
+def generate_structured(
+    prompt: str,
+    sources: list[str],
+    config: LLMConfig | None = None,
+) -> MedicalAnswer:
     """
     Generate MedicalAnswer from prompt.
     Uses JSON parsing fallback for models without function calling.
     """
-    llm = get_llm()
+    llm = get_llm(config)
 
-    # Try native structured output first (OpenAI, some local models)
     try:
         structured_llm = llm.with_structured_output(MedicalAnswer)
         result = structured_llm.invoke([HumanMessage(content=prompt)])
@@ -91,7 +92,6 @@ def generate_structured(prompt: str, sources: list[str]) -> MedicalAnswer:
     except Exception:
         pass
 
-    # Fallback: raw invoke + JSON parse
     try:
         response = llm.invoke([HumanMessage(content=prompt)]).content
         data = extract_json(response)
@@ -100,7 +100,6 @@ def generate_structured(prompt: str, sources: list[str]) -> MedicalAnswer:
     except Exception:
         pass
 
-    # Final fallback
     return MedicalAnswer(
         answer="Извините, не удалось сформировать ответ. Обратитесь к врачу.",
         confidence=0.0,

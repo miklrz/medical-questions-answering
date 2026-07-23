@@ -19,11 +19,11 @@ class SimilarityModel:
         if train:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(
-                "bert-base-uncased", num_labels=2
+                model_name, num_labels=2
             )
             self._ready = True
         else:
-            if os.path.exists(self.SAVED_MODEL_PATH):
+            if self.SAVED_MODEL_PATH and os.path.exists(self.SAVED_MODEL_PATH):
                 try:
                     self.model = AutoModelForSequenceClassification.from_pretrained(
                         self.SAVED_MODEL_PATH

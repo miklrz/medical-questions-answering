@@ -4,14 +4,14 @@ A/B тестирование промптов: базовый vs few-shot vs CoT
 Требует запущенный API (uvicorn) и LLM (LM Studio).
 """
 
-import os
 import sys
 from pathlib import Path
 
 # Add project root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.api.evaluation import load_test_set, run_ab_test, evaluate_response
+from src.api.config import get_api_config
+from src.api.evaluation import load_test_set, run_ab_test
 from src.api.dataset import MedicalDataset
 from src.api.retrieval import Retrieval
 from src.api.models import SimilarityModel
@@ -38,21 +38,35 @@ def get_answer_fn(retrieval, similarity_model):
 
 
 def main():
-    os.environ.setdefault("HOST", "localhost")
+    config = get_api_config()
 
     # Load dataset and build index
-    dataset = MedicalDataset("ruslanmv/ai-medical-chatbot", split="train")
-    retrieval = Retrieval()
+    dataset = MedicalDataset(
+        config.dataset.qa_name,
+        split=config.dataset.qa_split,
+        cache_dir=config.dataset.qa_cache_dir,
+    )
+    retrieval = Retrieval(
+        embedding_model_name=config.retrieval.embedding_model_name,
+        device=config.retrieval.device,
+        embedding_batch_size=config.retrieval.embedding_batch_size,
+        show_progress_bar=config.retrieval.show_progress_bar,
+        embeddings_cache_dir=config.retrieval.embeddings_cache_dir,
+    )
     retrieval.build_index(dataset.get_qa_pairs())
-    similarity_model = SimilarityModel()
+    similarity_model = SimilarityModel(
+        model_name=config.reranker.model_name,
+        device=config.reranker.device,
+        SAVED_MODEL_PATH=config.reranker.saved_model_path,
+    )
 
-    test_set = load_test_set(TEST_PATH)
+    test_set = load_test_set(config.evaluation.test_set_path or TEST_PATH)
     if not test_set:
         print("Test set not found. Create data/test_questions.json")
         return
 
     answer_fn = get_answer_fn(retrieval, similarity_model)
-    variants = ["base", "few_shot", "cot", "full"]
+    variants = config.evaluation.prompt_variants
 
     print("Running A/B test... (this may take a while)")
     results = run_ab_test(test_set, variants, answer_fn)

@@ -1,0 +1,9 @@
+api:
+  base_url: http://127.0.0.1:8000
+  answer_timeout_seconds: 180.0
+  feedback_timeout_seconds: 5.0
+
+telegram:
+  # Prefer TELEGRAM_TOKEN in .env or environment for real deployments.
+  token: null
+  parse_mode: Markdown

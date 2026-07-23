@@ -1,11 +1,12 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
-import os
 import logging
 
+from src.api.config import get_api_config
 
-def tokenize(ds):
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+
+def tokenize(ds, model_name: str = "bert-base-uncased"):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     def tokenization(example):
         return tokenizer(
@@ -26,11 +27,13 @@ class MedicalDataset:
     Поля: Description (вопрос пациента), Doctor (ответ врача)
     """
 
-    def __init__(self, url="ruslanmv/ai-medical-chatbot", split="train"):
-        self.ds = load_dataset(
-            path=url, split=split, cache_dir=os.getenv("SAVED_DATASET_QA_PATH")
-        )
-        logging.info(f'ruslanmv/ai-medical-chatbot" loaded')
+    def __init__(self, url: str | None = None, split: str | None = None, cache_dir: str | None = None):
+        config = get_api_config().dataset
+        dataset_name = url or config.qa_name
+        dataset_split = split or config.qa_split
+        dataset_cache_dir = cache_dir if cache_dir is not None else config.qa_cache_dir
+        self.ds = load_dataset(path=dataset_name, split=dataset_split, cache_dir=dataset_cache_dir)
+        logging.info(f'Dataset "{dataset_name}" loaded')
 
     def get_qa_pairs(self) -> list[str]:
         qa_pairs = [f"Q: {ex['Description']} A: {ex['Doctor']}" for ex in self.ds]
@@ -47,12 +50,12 @@ class RerankerDataset:
     Поля: question_1, question_2, label (0/1 — похожи или нет)
     """
 
-    def __init__(self):
-        self.ds = load_dataset(
-            "curaihealth/medical_questions_pairs",
-            cache_dir=os.getenv("SAVED_DATASET_PAIRS_PATH"),
-        )
-        logging.info(f'Dataset: "curaihealth/medical_questions_pairs" loaded')
+    def __init__(self, name: str | None = None, cache_dir: str | None = None):
+        config = get_api_config().dataset
+        dataset_name = name or config.pairs_name
+        dataset_cache_dir = cache_dir if cache_dir is not None else config.pairs_cache_dir
+        self.ds = load_dataset(dataset_name, cache_dir=dataset_cache_dir)
+        logging.info(f'Dataset "{dataset_name}" loaded')
 
     def get_ds(self):
         return self.ds
@@ -70,7 +73,7 @@ def tokenize_reranker(ds, model_name: str = "bert-base-uncased"):
             example["question_1"],
             example["question_2"],
             truncation=True,
-            padding=False,  # DataCollatorWithPadding сделает паддинг в батче
+            padding=False,
             max_length=512,
         )
 

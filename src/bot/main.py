@@ -2,18 +2,16 @@ import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import requests
-from dotenv import load_dotenv
-import os
 import asyncio
 import httpx
 
-load_dotenv()
+from src.bot.config import get_bot_config
 
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+config = get_bot_config()
+if not config.telegram.token:
+    raise RuntimeError("TELEGRAM_TOKEN is required via environment or bot config")
 
-bot = Bot(token=TELEGRAM_TOKEN)
+bot = Bot(token=config.telegram.token)
 dp = Dispatcher()
 
 
@@ -48,10 +46,13 @@ async def handle_message(message: types.Message):
     user_q = message.text
     thinking = await message.reply("⏳ Обрабатываю запрос...")
     try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
+        async with httpx.AsyncClient(timeout=config.api.answer_timeout_seconds) as client:
             logging.info("Sending request to api")
-            resp = await client.post(f"{API_URL}/answer", json={"question": user_q})
-            logging.info("Recieved responce")
+            resp = await client.post(
+                f"{config.api.base_url}/answer",
+                json={"question": user_q},
+            )
+            logging.info("Received response")
             resp.raise_for_status()
             data = resp.json()
 
@@ -81,7 +82,11 @@ async def handle_message(message: types.Message):
         reply = "\n".join(parts)
         keyboard = build_feedback_keyboard(request_id) if request_id else None
         await thinking.delete()
-        await message.reply(reply, reply_markup=keyboard, parse_mode="Markdown")
+        await message.reply(
+            reply,
+            reply_markup=keyboard,
+            parse_mode=config.telegram.parse_mode,
+        )
 
     except Exception as e:
         logging.error(f"Error handling message: {e}")
@@ -98,9 +103,9 @@ async def handle_feedback(callback: types.CallbackQuery):
         request_id = parts[1]
         useful = parts[2] == "1"
 
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=config.api.feedback_timeout_seconds) as client:
             await client.post(
-                f"{API_URL}/feedback",
+                f"{config.api.base_url}/feedback",
                 params={"request_id": request_id, "useful": useful},
             )
 

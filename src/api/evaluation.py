@@ -8,6 +8,7 @@ from pathlib import Path
 from rouge_score import rouge_scorer
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from sentence_transformers import SentenceTransformer
+from src.api.config import get_api_config
 import numpy as np
 
 
@@ -58,7 +59,7 @@ def compute_semantic_similarity(
 ) -> float:
     """Cosine similarity between embeddings."""
     if model is None:
-        model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
+        model = SentenceTransformer(get_api_config().evaluation.semantic_model_name)
     ref_emb = model.encode([reference])
     hyp_emb = model.encode([hypothesis])
     return float(np.dot(ref_emb[0], hyp_emb[0]) / (np.linalg.norm(ref_emb[0]) * np.linalg.norm(hyp_emb[0]) + 1e-9))
