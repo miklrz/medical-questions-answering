@@ -64,6 +64,17 @@ class GraphConfig(BaseModel):
 class TrainingConfig(BaseModel):
     output_dir: str | None = "saved_model"
     base_model_name: str = "bert-base-uncased"
+    eval_strategy: str = "steps"
+    eval_steps: int = 100
+    logging_steps: int = 20
+    per_device_train_batch_size: int = 16
+    per_device_eval_batch_size: int = 16
+    num_train_epochs: float = 3
+    save_total_limit: int = 2
+    load_best_model_at_end: bool = True
+    metric_for_best_model: str = "accuracy"
+    report_to: str | list[str] = "none"
+    fp16: bool = True
 
 
 class EvaluationConfig(BaseModel):
@@ -131,6 +142,18 @@ def load_api_config(path: str | Path | None = None) -> APIConfig:
     _set_if_env(data, "dataset", "pairs_cache_dir", "SAVED_DATASET_PAIRS_PATH")
     _set_if_env(data, "reranker", "saved_model_path", "SAVED_MODEL_PATH")
     _set_if_env(data, "training", "output_dir", "SAVED_MODEL_PATH")
+    _set_if_env(data, "training", "base_model_name", "TRAIN_BASE_MODEL_NAME")
+    _set_if_env(data, "training", "eval_strategy", "TRAIN_EVAL_STRATEGY")
+    _set_if_env(data, "training", "eval_steps", "TRAIN_EVAL_STEPS", int)
+    _set_if_env(data, "training", "logging_steps", "TRAIN_LOGGING_STEPS", int)
+    _set_if_env(data, "training", "per_device_train_batch_size", "TRAIN_BATCH_SIZE", int)
+    _set_if_env(data, "training", "per_device_eval_batch_size", "EVAL_BATCH_SIZE", int)
+    _set_if_env(data, "training", "num_train_epochs", "TRAIN_NUM_EPOCHS", float)
+    _set_if_env(data, "training", "save_total_limit", "TRAIN_SAVE_TOTAL_LIMIT", int)
+    _set_if_env(data, "training", "load_best_model_at_end", "TRAIN_LOAD_BEST_MODEL_AT_END", _env_bool)
+    _set_if_env(data, "training", "metric_for_best_model", "TRAIN_METRIC_FOR_BEST_MODEL")
+    _set_if_env(data, "training", "report_to", "TRAIN_REPORT_TO")
+    _set_if_env(data, "training", "fp16", "TRAIN_FP16", _env_bool)
     _set_if_env(data, "retrieval", "top_k", "RETRIEVAL_TOP_K", int)
     _set_if_env(data, "retrieval", "embedding_batch_size", "EMBEDDING_BATCH_SIZE", int)
     _set_if_env(data, "retrieval", "show_progress_bar", "EMBEDDING_SHOW_PROGRESS", _env_bool)

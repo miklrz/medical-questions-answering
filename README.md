@@ -14,12 +14,6 @@ RAG-система для автоматических ответов на ме�
 4. **Generation** — LLM генерирует ответ с structured output (Pydantic)
 5. **Quality Check** — при низкой уверенности добавляются предупреждения и рекомендация визита к врачу
 
-
-## Datasets
-
-- [curaihealth/medical_questions_pairs](https://huggingface.co/datasets/curaihealth/medical_questions_pairs)
-- [ruslanmv/ai-medical-chatbot](https://huggingface.co/datasets/ruslanmv/ai-medical-chatbot)
-
 ## Технологии
 
 - **Fine-tuning**: BERT-base
@@ -90,11 +84,44 @@ uv run python -m src.bot.main
 uv run python scripts/ab_test_prompts.py
 ```
 
+## Датасеты
+
+Проект использует два разных датасета с Hugging Face. Оба скачиваются автоматически через `datasets.load_dataset` при первом запуске, если их еще нет в локальном кеше.
+
+1. `ruslanmv/ai-medical-chatbot` — основной QA-корпус для RAG.
+    
+    [ruslanmv/ai-medical-chatbot](https://huggingface.co/datasets/ruslanmv/ai-medical-chatbot)
+
+   Он используется при старте API в `MedicalDataset`: из полей `Description` и `Doctor` собираются строки вида `Q: ... A: ...`, затем по ним строится FAISS-индекс. В конфиге это задается так:
+
+   ```yaml
+   dataset:
+     qa_name: ruslanmv/ai-medical-chatbot
+     qa_split: train
+     qa_cache_dir: data/ds_qa
+   ```
+
+   Если `qa_cache_dir` указан, Hugging Face положит кеш датасета туда. Если не указан, будет использован стандартный кеш `~/.cache/huggingface/datasets`.
+
+2. `curaihealth/medical_questions_pairs` — пары медицинских вопросов для обучения BERT-реранкера.
+
+    [curaihealth/medical_questions_pairs](https://huggingface.co/datasets/curaihealth/medical_questions_pairs)
+
+   Он используется в `src/api/train.py` через `RerankerDataset`. Ожидаемые поля: `question_1`, `question_2`, `label`. В конфиге это задается так:
+
+   ```yaml
+   dataset:
+     pairs_name: curaihealth/medical_questions_pairs
+     pairs_cache_dir: data/ds_pairs
+   ```
+
+   Этот датасет нужен только для обучения реранкера командой `uv run python -m src.api.train`. Для обычного запуска API уже обученная модель должна лежать в `reranker.saved_model_path` / `training.output_dir`, например `data/saved_model`.
+
 ## Конфигурация
 
 API и бот используют отдельные YAML-конфиги:
 
-- `config/api.yaml` — LLM endpoint/model/timeout, датасеты, retrieval/reranker, параметры графа, обучение и evaluation.
+- `config/api.yaml` — LLM endpoint/model/timeout, датасеты, retrieval/reranker, параметры графа, TrainingArguments для обучения и evaluation.
 - `config/bot.yaml` — URL API, таймауты HTTP-клиента и Telegram parse mode.
 
 Примеры лежат в `config/api.example.yaml` и `config/bot.example.yaml`. Локальные `config/api.yaml` и `config/bot.yaml` добавлены в `.gitignore`. Значения из `.env` и переменных окружения перекрывают YAML для совместимости с Docker и секретами: `TELEGRAM_TOKEN`, `API_URL`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `SAVED_MODEL_PATH`, `SAVED_DATASET_QA_PATH`, `SAVED_DATASET_PAIRS_PATH`.

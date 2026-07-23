@@ -1,4 +1,3 @@
-import torch
 from src.api.dataset import RerankerDataset, tokenize_reranker
 from transformers import (
     AutoTokenizer,
@@ -8,9 +7,7 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from src.api.config import get_api_config
-
-BASE_MODEL = get_api_config().training.base_model_name
+from src.api.config import TrainingConfig, get_api_config
 
 
 def compute_metrics(eval_pred):
@@ -24,19 +21,17 @@ def compute_metrics(eval_pred):
 
 
 class ModelTrainer:
-    def __init__(self, ds, SAVED_MODEL_PATH):
-        self.ds = ds.get_ds()
-        # self.task = Task.init(
-        #     project_name="medical_bot",
-        #     task_name="bert_reranker_cross_encoder",
-        # )
+    def __init__(self, ds: RerankerDataset, config: TrainingConfig):
         self.reranker_ds = ds
-        self.SAVED_MODEL_PATH = SAVED_MODEL_PATH
+        self.config = config
 
     def train(self):
         split = self.reranker_ds.train_test_split(test_size=0.2, seed=42)
-        tokenized_ds, tokenizer = tokenize_reranker(split, model_name=BASE_MODEL)
-        tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+        tokenized_ds, tokenizer = tokenize_reranker(
+            split,
+            model_name=self.config.base_model_name,
+        )
+        tokenizer = AutoTokenizer.from_pretrained(self.config.base_model_name)
 
         columns = ["input_ids", "attention_mask", "token_type_ids", "label"]
         train_dataset = tokenized_ds["train"].remove_columns(
@@ -49,24 +44,24 @@ class ModelTrainer:
         print(f"Train size: {len(train_dataset)}, Eval size: {len(eval_dataset)}")
 
         model = AutoModelForSequenceClassification.from_pretrained(
-            BASE_MODEL, num_labels=2
+            self.config.base_model_name,
+            num_labels=2,
         )
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
         training_args = TrainingArguments(
-            output_dir=self.SAVED_MODEL_PATH,
-            eval_strategy="steps",
-            eval_steps=100,
-            logging_steps=20,
-            per_device_train_batch_size=16,
-            per_device_eval_batch_size=16,
-            num_train_epochs=3,
-            save_total_limit=2,
-            load_best_model_at_end=True,
-            metric_for_best_model="accuracy",
-            # report_to="clearml",
-            report_to="none",
-            fp16=True,
+            output_dir=self.config.output_dir,
+            eval_strategy=self.config.eval_strategy,
+            eval_steps=self.config.eval_steps,
+            logging_steps=self.config.logging_steps,
+            per_device_train_batch_size=self.config.per_device_train_batch_size,
+            per_device_eval_batch_size=self.config.per_device_eval_batch_size,
+            num_train_epochs=self.config.num_train_epochs,
+            save_total_limit=self.config.save_total_limit,
+            load_best_model_at_end=self.config.load_best_model_at_end,
+            metric_for_best_model=self.config.metric_for_best_model,
+            report_to=self.config.report_to,
+            fp16=self.config.fp16,
         )
 
         trainer = Trainer(
@@ -82,11 +77,9 @@ class ModelTrainer:
         print("Training BERT cross-encoder reranker...")
         trainer.train()
 
-        trainer.save_model(self.SAVED_MODEL_PATH)
-        tokenizer.save_pretrained(self.SAVED_MODEL_PATH)
-        print(f"Model saved to {self.SAVED_MODEL_PATH}")
-
-        # self.task.close()
+        trainer.save_model(self.config.output_dir)
+        tokenizer.save_pretrained(self.config.output_dir)
+        print(f"Model saved to {self.config.output_dir}")
 
 
 if __name__ == "__main__":
@@ -95,5 +88,5 @@ if __name__ == "__main__":
         name=config.dataset.pairs_name,
         cache_dir=config.dataset.pairs_cache_dir,
     )
-    trainer = ModelTrainer(ds, SAVED_MODEL_PATH=config.training.output_dir)
+    trainer = ModelTrainer(ds, config=config.training)
     trainer.train()
