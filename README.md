@@ -1,6 +1,6 @@
 # Medical Questions Answering
 
-RAG-система для автоматических ответов на медицинские вопросы с использованием fine-tuned BERT, векторного поиска и LLM. Реализован full-stack pipeline: LangGraph multi-step reasoning, structured output (Pydantic), prompt engineering, A/B тестирование промптов.
+RAG-система для автоматических ответов на медицинские вопросы с использованием fine-tuned BERT, векторного поиска и LLM. Реализован full-stack pipeline: LangGraph multi-step reasoning, structured output.
 
 ## Проблема
 
@@ -155,10 +155,6 @@ API и бот используют отдельные YAML-конфиги:
     temperature: 0.0
     timeout_seconds: 60.0
 ```
-
-## Эксперименты
-
-- **Промпты**: `base`, `few_shot`, `cot`, `full` — сравниваются по ROUGE-L, BLEU, semantic similarity.
 
 ## Demo
 (В процессе)
